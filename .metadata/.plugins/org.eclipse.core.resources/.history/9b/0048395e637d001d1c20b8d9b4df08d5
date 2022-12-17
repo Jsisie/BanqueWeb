@@ -1,0 +1,9 @@
+Commandes et processus d'installation/exécution de l'application BanqueWeb :
+
+REQUIERT :
+ - docker (doit être installé et être lancé pour les prochaines étapes)
+ - Serveur Tomcat v10.0
+
+(1) Lancer la BDD :
+	- Dans un terminal, se rendre à la racine du programme (au même niveau que src)
+	- Lancer la commande "docker-compose up

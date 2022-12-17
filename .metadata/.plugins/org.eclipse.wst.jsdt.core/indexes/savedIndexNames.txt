@@ -1,0 +1,8 @@
+INDEX VERSION 1.4+D:\Programs\Java\JEE\BanqueWeb\.metadata\.plugins\org.eclipse.wst.jsdt.core\indexes
+3241100157.index
+2226461340.index
+70546406.index
+1615973569.index
+712115503.index
+1484760037.index
+2789485978.index

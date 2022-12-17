@@ -1,0 +1,426 @@
+package servlets;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import javaBeans.BOperations;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.logging.Logger;
+
+import javax.sql.DataSource;
+import gestionErreurs.TraitementException;
+
+/**
+ * Servlet implementation class SOperations
+ */
+public class SOperations extends HttpServlet {
+    private static final Logger logger = Logger.getLogger(SOperations.class.getName());
+	private static final long serialVersionUID = 1L;
+	private HttpSession session;
+	private DataSource ds;
+
+	/**
+	 * @see HttpServlet#HttpServlet()
+	 */
+	public SOperations() {
+		super();
+	}
+
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		this.getServletContext().getRequestDispatcher("/JSaisieNoDeCompte.jsp").forward(request, response);
+	}
+	
+	/**
+	 * 
+	 */
+	public void init() {
+		ds = (DataSource) getServletContext().getAttribute("dataSource");
+	}
+	
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		try {
+			var btn = request.getParameter("Demande");
+					
+			switch(btn) {
+				case("Consulter") -> {
+					consultation(request, response, 10);
+					break;
+				}
+				case("Traiter") ->  {
+					traitement(request, response);
+					break;
+				}
+				case("Extraire la liste") -> {
+					listeOperations(request, response);
+					break;
+				}
+				case("Retour") -> {
+					consultation(request, response, 12);
+					break;
+				}
+				case("Fin de traitement") -> {
+					resetSessionNoCompte();
+					this.getServletContext().getRequestDispatcher("/JSaisieNoDeCompte.jsp").forward(request, response);
+					break;
+				}
+				default -> {
+					break;
+				}
+			}
+		} catch (IOException e) {
+			e.getMessage();
+			request.setAttribute("msgError", e.getMessage());
+			logger.warning(e.getMessage());
+		} catch (TraitementException e) {
+			request.setAttribute("msgError", e.getMessage());
+			request.setAttribute("NoDeCompte", request.getParameter("NoDeCompte"));
+			this.getServletContext().getRequestDispatcher("/JSaisieNoDeCompte.jsp").forward(request, response);
+		}
+	}
+	
+	/**
+	 * Réinitialise l'attribut <i>NoDeCompte</i> de la session
+	 */
+	private void resetSessionNoCompte() {
+		session.removeAttribute("NoDeCompte");
+	}
+	
+	/**
+	 * Consulte un <i>noDeCompte</i>, met à jour le <i>request</i> des valeurs 
+	 * et exécute le JSP <b>JOperations</b>
+	 * @param request HttpServletRequest
+	 * @param response HttpServletResponse
+	 * @param code Entier determinant le contexte dans lequel est appelé la méthode consultation()
+	 * @throws IOException si une erreur d'entrée/sortie s'exécute
+	 * @throws TraitementException  si une erreur fonctionnelle se produit,
+	 * 			 retourne vers le JSP <b>JSaisieNoDeCompte</b>
+	 * @throws ServletException 
+	 */
+	private void consultation(HttpServletRequest request, HttpServletResponse response, int code) throws IOException, TraitementException, ServletException {
+		String noCompte = request.getParameter("NoDeCompte");
+		switch(code) {
+			case 10 -> {
+				noCompte = request.getParameter("NoDeCompte");
+				setLocalDates(request);
+				break;
+			}
+			case 11 -> {
+				noCompte = (String) session.getAttribute("NoDeCompte");
+				setSessionDate();
+				setAttributeSessionValue("", "", "+");
+				break;
+			}
+			case 12 -> {
+				noCompte = (String) session.getAttribute("NoDeCompte");
+				setSessionDate();
+				setAttributeSessionValue((String)session.getAttribute("valeurEntiere"),
+						(String)session.getAttribute("valeurDecimale"),
+						(String)session.getAttribute("op"));
+				break;
+			}
+			default -> {
+				noCompte = request.getParameter("NoDeCompte");
+				break;
+			}
+		}
+		if(noCompte!=null) {
+			
+			if(!verifStringIsInteger(noCompte))
+				throw new TraitementException("4");
+			if(!verifNoDeCompteLength(noCompte))
+				throw new TraitementException("5");
+			try {
+				var boperation = new BOperations();	
+				boperation.setNoDeCompte(noCompte);
+				
+				boperation.ouvrirConnexion(ds);
+				boperation.consulter();
+				var noDeCompte = boperation.getNoDeCompte();
+				var nom = boperation.getNom();
+				if(nom == null)
+					throw new TraitementException("3");
+				var prenom = boperation.getPrenom();
+				var solde = boperation.getSolde();
+				boperation.fermerConnexion();
+				
+				request.setAttribute("NoDeCompte", noDeCompte);
+				request.setAttribute("nom", nom);
+				request.setAttribute("prenom", prenom);
+				request.setAttribute("solde", solde);
+				session = request.getSession();
+				session.setAttribute("NoDeCompte", noDeCompte);
+				session.setAttribute("nom", nom);
+				session.setAttribute("prenom", prenom);
+				session.setAttribute("solde", solde);
+				
+				this.getServletContext().getRequestDispatcher("/JOperations.jsp").forward(request, response);
+			} catch (TraitementException e) {
+				response.getWriter().append("Le N° de compte n'existe pas");
+				request.setAttribute("msgError", e.getMessage());
+
+				this.getServletContext().getRequestDispatcher("/JSaisieNoDeCompte.jsp").forward(request, response);
+				logger.warning(e.getMessage());
+			}
+		} else {
+			response.getWriter().append("Le N° de compte n'existe pas");
+		}
+	}
+	
+	/**
+	 * Enregistre dans la session <i>valeurEntiere</i>, <i>valeurDecimale</i> et <i>op</i>.
+	 * @param valeurEntiere String représentant la valeur entiere d'une opération
+	 * @param valeurDecimale String représentant la valeur decimale d'une opération
+	 * @param op String représentant l'operateur <i>(+ ou -)</i>
+	 */
+	private void setAttributeSessionValue(String valeurEntiere, String valeurDecimale, String op) {
+		session.setAttribute("valeurEntiere", valeurEntiere);
+		session.setAttribute("valeurDecimale", valeurDecimale);
+		session.setAttribute("op", op);
+	}
+	
+	/**
+	 * Recupére la date actuelle et l'enregistre dans la request dans <i>dayInit</i>, <i>dayFinal</i>,
+	 * <i>monthInit</i>, <i>monthFinal</i>, <i>yearInit</i> et <i>yearFinal</i>.
+	 * @param request HttpServletRequest
+	 */
+	private void setLocalDates(HttpServletRequest request) {
+		var date = LocalDateTime.now();  
+		int day = date.getDayOfMonth();
+		int month = date.getMonthValue();
+		int year = date.getYear();
+
+		request.setAttribute("dayInit", day);
+		request.setAttribute("dayFinal", day);
+		request.setAttribute("monthInit", month);
+		request.setAttribute("monthFinal", month);
+		request.setAttribute("yearInit", year);
+		request.setAttribute("yearFinal", year);
+	}
+	
+	/**
+	 * Enregistre dans la session les attribut de <i>JInit</i>, <i>mInit</i>,
+	 * <i>aInit</i>, <i>jFinal</i>, <i>mFinal</i> et <i>aFinal</i>.
+	 */
+	private void setSessionDate() {
+		session.setAttribute("dayInit", session.getAttribute("jInit"));
+		session.setAttribute("monthInit", session.getAttribute("mInit"));
+		session.setAttribute("yearInit", session.getAttribute("aInit"));
+		session.setAttribute("dayFinal", session.getAttribute("jFinal"));
+		session.setAttribute("monthFinal", session.getAttribute("mFinal"));
+		session.setAttribute("yearFinal", session.getAttribute("aFinal"));
+	}
+	
+	/**
+	 * Enregitre dans la session les paramètres de valeurs des JSP.
+	 * @param dayInit String correspondant au jour initial
+	 * @param monthInit String correspondant au mois initial
+	 * @param yearInit String correspondant à l'année initiale
+	 * @param dayFinal String correspondant au jour final
+	 * @param monthFinal String correspondant au mois final
+	 * @param yearFinal String correspondant à l'année finale
+	 */
+	private void setDatesJSP(String dayInit, String monthInit, String yearInit, String dayFinal, String monthFinal, String yearFinal) {
+		session.setAttribute("jInit", dayInit);
+		session.setAttribute("mInit", monthInit);
+		session.setAttribute("aInit", yearInit);
+		session.setAttribute("jFinal", dayFinal);
+		session.setAttribute("mFinal", monthFinal);
+		session.setAttribute("aFinal", yearFinal);
+	}
+	
+	/**
+	 * Effectue une opération depuis le JSP <b>JOperations</b>, enregistre l'opération 
+	 * dans la base de donnée et appelle ensuite la méthode <i>consultation()</i> avec 
+	 * le code correspondant si l'opération s'est bien passée.
+	 * @param request HttpServletRequest
+	 * @param response HttpServletResponse
+	 * @throws IOException si une erreur d'entrée/sortie s'exécute
+	 * @throws TraitementException si une erreur fonctionnelle se produit, 
+	 * 			retourne vers le JSP <b>JOperations</b>
+	 * @throws ServletException 
+	 */
+	private void traitement(HttpServletRequest request, HttpServletResponse response) throws IOException, TraitementException, ServletException {
+		String noCompte = (String) session.getAttribute("NoDeCompte");
+		BigDecimal ancienSolde = (BigDecimal) session.getAttribute("solde");
+		String op = request.getParameter("Op");
+		String valEntiere = request.getParameter("ValeurEntiere");
+		String valDecimal= request.getParameter("ValeurDecimale");
+		valDecimal = valDecimal==""?"00":valDecimal;
+		String userSolde = valEntiere + "." + valDecimal;
+		
+		String dayInit = request.getParameter("jInit");
+		String monthInit = request.getParameter("mInit");
+		String yearInit = request.getParameter("aInit");
+		request.setAttribute("dayInit", dayInit);
+		request.setAttribute("monthInit", monthInit);
+		request.setAttribute("yearInit", yearInit);
+		
+		String dayFinal = request.getParameter("jFinal");
+		String monthFinal = request.getParameter("mFinal");
+		String yearFinal = request.getParameter("aFinal");
+		request.setAttribute("dayFinal", dayFinal);
+		request.setAttribute("monthFinal", monthFinal);
+		request.setAttribute("yearFinal", yearFinal);
+		
+		String dateInit = yearInit+"-"+monthInit+"-"+dayInit;
+		String dateSup = yearFinal+"-"+monthFinal+"-"+dayFinal;
+		session.setAttribute("dateInf", dateInit);
+		session.setAttribute("dateSup", dateSup);
+		
+		try {
+			verifValeur(valEntiere, valDecimal);
+			
+			var boperation = new BOperations();	
+			boperation.setNoDeCompte(noCompte);
+			boperation.ouvrirConnexion(ds);
+			boperation.consulter();
+			boperation.setOp(op);
+			boperation.setValeur(userSolde);
+			boperation.traiter();
+			var nouveauSolde = boperation.getNouveauSolde();
+			
+			session.setAttribute("solde", nouveauSolde);
+			boperation.fermerConnexion();
+			
+			request.setAttribute("msg", "Opération réalisée: " + op + userSolde + " Ancien Solde: " + ancienSolde + " Nouveau Solde: " + nouveauSolde);
+			
+			consultation(request, response, 11);
+		} catch (TraitementException e) {
+			request.setAttribute("valeurEntiere", valEntiere);
+			request.setAttribute("valeurDecimale", valDecimal);
+			request.setAttribute("op", op);
+			
+			request.setAttribute("msgError", e.getMessage());
+			this.getServletContext().getRequestDispatcher("/JOperations.jsp").forward(request, response);
+		}		
+	}
+	
+	/**
+	 * Récupére les opérations effectuées entre <i>dateInf</i> et <i>dateSup</i> et les renvoie vers 
+	 * le JSP <b>JListeOperations</b>.
+	 * @param request HttpServletRequest
+	 * @param response HttpServletResponse
+	 * @throws ServletException si dateInf est supérieur à dateSup
+	 * @throws IOException si une erreur d'entrée/sortie s'exécute
+	 */
+	private void listeOperations(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		String noCompte = (String) session.getAttribute("NoDeCompte");
+		
+		String dayInit = request.getParameter("jInit");
+		String monthInit = request.getParameter("mInit");
+		String yearInit = request.getParameter("aInit");
+		String dayFinal = request.getParameter("jFinal");
+		String monthFinal = request.getParameter("mFinal");
+		String yearFinal = request.getParameter("aFinal");
+		
+		String dateInf = yearInit+"-"+monthInit+"-"+dayInit;
+		String dateSup = yearFinal+"-"+monthFinal+"-"+dayFinal;
+	
+		String op = request.getParameter("Op");
+		String valEntiere = request.getParameter("ValeurEntiere");
+		String valDecimal= request.getParameter("ValeurDecimale");
+		
+		setDatesJSP(dayInit, monthInit, yearInit, dayFinal, monthFinal, yearFinal);
+		try {
+			verifDates(dateInf, dateSup);
+			
+			var boperation = new BOperations();	
+			boperation.setNoDeCompte(noCompte);
+			boperation.ouvrirConnexion(ds);
+			boperation.consulter();
+			boperation.setDateInf(dateInf);
+			boperation.setDateSup(dateSup);
+			boperation.listerParDates();
+			List<String[]> operationsParDate = boperation.getOperationsParDates();
+			request.setAttribute("opParDate", operationsParDate);
+			
+			session.setAttribute("NoDeCompte", noCompte);
+			
+			session.setAttribute("op", op);
+			session.setAttribute("valeurEntiere", valEntiere);
+			session.setAttribute("valeurDecimale", valDecimal);
+			
+			if(operationsParDate.isEmpty()) {
+				setSessionDate();
+				throw new TraitementException("32");
+			}			
+			this.getServletContext().getRequestDispatcher("/JListeOperations.jsp").forward(request, response);
+		} catch (TraitementException e) {
+			request.setAttribute("msgError", e.getMessage());
+			setSessionDate();
+			this.getServletContext().getRequestDispatcher("/JOperations.jsp").forward(request, response);
+		}
+	}
+	
+	/**
+	 * Compare si dateInfString et dateSupString ont le format correct d'une date, et que
+	 * <i>dateSup</i> est inférieur à <i>dateInf</i>. Lève une exception si cas non échéant.
+	 * @param dateInfString String date initiale 
+	 * @param dateSupString String date finale
+	 * @throws TraitementException si la date initiale est supérieure à la date finale
+	 */
+	private void verifDates(String dateInfString, String dateSupString) throws TraitementException {
+		 try {
+			 var dateInf = new SimpleDateFormat("dd-mm-yyyy").parse(dateInfString);
+			 var dateSup = new SimpleDateFormat("dd-mm-yyyy").parse(dateSupString);
+			 if(dateInf.compareTo(dateSup) == 1) 
+				 throw new TraitementException("31");
+		} catch (ParseException e) {
+			logger.warning(e.getMessage());
+		}
+	}
+	
+	/**
+	 * Vérifie que <i>valEntiere</i> n'est pas vide et que <i>valEntiere</i> et <i>valDecimal</i> 
+	 * sont bien des valeurs numériques.
+	 * @param valEntiere String valeur entière de l'opération
+	 * @param valDecimal String valeur décimale de l'opération
+	 * @throws TraitementException si valEntiere est vide ou si <i>valDecimal</i> et/ou 
+	 * <i>valEntiere</i> n'est pas convertible en Integer  
+	 */
+	private void verifValeur(String valEntiere, String valDecimal) throws TraitementException {
+		if(valEntiere == "")
+			throw new TraitementException("26");
+		if(!verifStringIsInteger(valDecimal) || !verifStringIsInteger(valEntiere))
+			throw new TraitementException("25");
+	}
+	
+	/**
+	 * 
+	 * @param noCompte
+	 * @return
+	 * @throws TraitementException
+	 */
+	private boolean verifStringIsInteger(String noCompte) throws TraitementException {
+		try {
+			Integer.parseInt(noCompte);
+			return true;
+		} catch(NumberFormatException e) {
+			return false;
+		}
+	}
+	
+	/**
+	 * 
+	 * @param noCompte
+	 * @return
+	 * @throws TraitementException
+	 */
+	private boolean verifNoDeCompteLength(String noCompte) throws TraitementException {
+		return noCompte.length() == 4;
+	}
+}

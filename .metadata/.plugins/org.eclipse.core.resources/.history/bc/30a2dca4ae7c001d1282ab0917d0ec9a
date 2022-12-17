@@ -1,0 +1,29 @@
+package javaBeans;
+
+import java.sql.SQLException;
+
+import gestionErreurs.TraitementException;
+
+public class TestConsultation {
+	public static void main(String[] args) throws TraitementException {
+		var boperations = new BOperations();
+		try {
+			boperations.ouvrirConnexion();
+			boperations.setNoDeCompte("0001");
+			boperations.consulter();
+			var noCompte = boperations.getNoDeCompte();
+			var name = boperations.getNom();
+			var firstName = boperations.getPrenom();
+			var solde = boperations.getSolde();
+			System.out.println(noCompte+" : "+name+", "+firstName+", "+solde);
+			boperations.fermerConnexion();
+		} catch (TraitementException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+}

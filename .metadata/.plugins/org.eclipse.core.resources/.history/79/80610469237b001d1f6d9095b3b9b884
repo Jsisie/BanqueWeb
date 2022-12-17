@@ -1,0 +1,149 @@
+package servlets;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import javaBeans.BOperations;
+
+import java.io.IOException;
+import java.sql.SQLException;
+
+import gestionErreurs.TraitementException;
+
+/**
+ * Servlet implementation class SOperations
+ */
+public class SOperations2 extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+
+	/**
+	 * @see HttpServlet#HttpServlet()
+	 */
+	public SOperations2() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		doPost(request, response);
+	}
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		try {
+			var btn = request.getParameter("Demande");
+			if(btn == null)
+				btn = "";
+			
+			String noCompte = request.getParameter("NoDeCompte");
+			System.out.println(noCompte);
+			if(noCompte==null)
+				this.getServletContext().getRequestDispatcher("/JSaisieNoDeCompte.jsp").forward(request, response);
+				
+			switch(btn) {
+				case("Consulter") -> {
+					System.out.println("Consulter");
+					noCompte = consultation(request,response);
+				}
+				case("Traiter") ->  {
+					System.out.println("Traiter");
+					noCompte = request.getParameter("NoDeCompte");
+					System.out.println(noCompte);
+					traitement(request, response, noCompte);
+				}
+				case("") -> {
+					System.out.println("nothing");	
+				}
+				default -> consultation(request,response);
+			}
+			consultation(request,response);
+		} catch (IOException e) {
+			e.getMessage();
+		} catch (TraitementException e) {
+			request.setAttribute("msg", e.getMessage());
+			request.setAttribute("noDeCompte", request.getParameter("NoDeCompte"));
+			this.getServletContext().getRequestDispatcher("/JSaisieNoDeCompte.jsp").forward(request, response);
+		}
+	}
+	
+	private String consultation(HttpServletRequest request, HttpServletResponse response) throws IOException, TraitementException, ServletException {
+		String noCompte = request.getParameter("NoDeCompte");
+		if(noCompte!=null) {
+			if(!verifNoDeCompte(noCompte))
+				throw new TraitementException("4");
+			if(!verifNoDeCompteLength(noCompte))
+				throw new TraitementException("5");
+			try {
+				var boperation = new BOperations();	
+				boperation.setNoDeCompte(noCompte);
+				boperation.ouvrirConnexion();
+				boperation.consulter();
+				var noDeCompte = boperation.getNoDeCompte();
+				var nom = boperation.getNom();
+				var prenom = boperation.getPrenom();
+				var solde = boperation.getSolde();
+				request.setAttribute("noDeCompte", noDeCompte);
+				request.setAttribute("nom", nom);
+				request.setAttribute("prenom", prenom);
+				request.setAttribute("noDeCompte", noDeCompte);
+				request.setAttribute("solde", solde);
+				this.getServletContext().getRequestDispatcher("/JOperations.jsp").forward(request, response);
+			} catch (TraitementException e) {
+				e.getMessage();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		} else {
+			response.getWriter().append("Le N° de compte n'existe pas");
+		}
+		return noCompte;
+	}
+	
+	private void traitement(HttpServletRequest request, HttpServletResponse response, String noCompte) throws IOException, TraitementException, ServletException {
+		try {
+//			String noCompte = request.getParameter("NoDeCompte");
+			String op = request.getParameter("Op");
+			String valEntiere = request.getParameter("ValeurEntiere");
+			String valDecimal= request.getParameter("ValeurDecimale");
+			
+			System.out.println("noDeCompte = " + noCompte);
+			System.out.println(op+valEntiere+","+valDecimal);
+			
+			var boperation = new BOperations();	
+			boperation.setNoDeCompte(noCompte);
+			boperation.ouvrirConnexion();
+			boperation.consulter();
+			boperation.setOp(op);
+			boperation.setValeur(valEntiere + "," + valDecimal);
+			System.out.println(boperation);
+			boperation.traiter();
+			var nouveauSolde = boperation.getNouveauSolde();
+			System.out.println(noCompte+" : "+nouveauSolde);
+		} catch (TraitementException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
+	}
+	
+	private boolean verifNoDeCompte(String noCompte) throws TraitementException {
+		try {
+			Integer.parseInt(noCompte);
+			return true;
+		} catch(NumberFormatException e) {
+			return false;
+		}
+	}
+	
+	private boolean verifNoDeCompteLength(String noCompte) throws TraitementException {
+		return noCompte.length() == 4;
+	}
+}

@@ -1,0 +1,20 @@
+package javaBeans;
+
+import java.sql.SQLException;
+
+import gestionErreurs.TraitementException;
+
+public class TestTraitement {
+	public static void main(String[] args) throws TraitementException, SQLException {
+		var boperations = new BOperations();
+		boperations.ouvrirConnexion();
+		boperations.setNoDeCompte("0001");
+		boperations.setOp("-");
+		boperations.setValeur("10");
+		boperations.traiter();
+		var noCompte = boperations.getNoDeCompte();
+		var nouveauSolde = boperations.getNouveauSolde();
+		System.out.println(noCompte+" : "+nouveauSolde);
+		boperations.fermerConnexion();
+	}
+}

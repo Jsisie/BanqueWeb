@@ -1,0 +1,92 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Consultation réussie</title>
+<style type="text/css">
+td,
+th {
+    border: 1px solid rgb(190, 190, 190);
+    padding: 10px;
+}
+
+td {
+    text-align: center;
+}
+
+tr:nth-child(even) {
+    background-color: #eee;
+}
+
+th[scope="col"] {
+    background-color: #696969;
+    color: #fff;
+}
+
+th[scope="row"] {
+    background-color: #d7d9f2;
+}
+
+caption {
+    padding: 10px;
+    caption-side: bottom;
+}
+
+table {
+    border-collapse: collapse;
+    border: 2px solid rgb(200, 200, 200);
+    letter-spacing: 1px;
+    font-family: sans-serif;
+    font-size: .8rem;
+}
+</style>
+</head>
+<body>
+	<div class="compteTables">
+		<div class="infosCompteTable" align="center"> 
+			<table>
+				<tr>
+					<th>N° de compte</th>
+					<th>Nom</th>
+					<th>Prénom</th>
+					<th>Solde</th>
+				</tr>
+				<tr>
+					<td><%=session.getAttribute("NoDeCompte")%></td>
+					<td><%=session.getAttribute("nom")%></td>
+					<td><%=session.getAttribute("prenom")%></td>
+					<td><%=session.getAttribute("solde")%></td>
+				</tr>
+			</table>
+		</div>
+		<br>
+		<form class="operationForm" method="post">
+			<div class="operationTable" align="center">
+				<table>
+					<tr>
+						<th>Opération à effectuer</th>
+						<th>Valeur</th>
+					</tr>
+					<tr>
+						<td>
+							<label for="+">(+)</label>
+							<input type="radio" id="OpPlus" name="Op" value="+">
+		  					<input type="radio" id="OpMinus" name="Op" value="-">
+		  					<label for="-">(-)</label></td>
+						<td>
+							<input type="text" name="ValeurEntiere" id="valeurEntiere" maxlength="10" size="10">
+							<label id="virguleDecimale" for="valeur">,</label>
+							<input type="text" name="ValeurDecimale" id="valeurDecimale" maxlength="2" size="2">
+						</td>
+						<td>
+							<input  id="Demande" name="Demande" type="submit" value="Traiter">
+						</td>
+					</tr>
+				</table>
+			</div>
+		</form>
+	</div>
+</body>
+</html>

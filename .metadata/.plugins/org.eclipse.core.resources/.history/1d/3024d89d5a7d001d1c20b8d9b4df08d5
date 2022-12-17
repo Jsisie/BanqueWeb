@@ -1,0 +1,197 @@
+package javaBeans;
+
+import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.sql.DataSource;
+
+import gestionErreurs.TraitementException;
+
+public class BOperations {
+	private String noDeCompte;
+	private String nom;
+	private String prenom;
+	private BigDecimal solde;
+	
+	private BigDecimal ancienSolde;
+	private BigDecimal nouveauSolde;
+	private BigDecimal valeur;
+	private String op;
+	
+	private Connection con;
+	
+	private List<String[]> operationsParDates;
+	private String dateInf;
+	private String dateSup;
+	
+	public String getNom() {
+		return nom;
+	}
+	public String getPrenom() {
+		return prenom;
+	}
+	public BigDecimal getSolde() {
+		return solde;
+	}
+	public String getNoDeCompte() {
+		return noDeCompte;
+	}
+	public void setNoDeCompte(String noDeCompte) {
+		this.noDeCompte = noDeCompte;
+	}
+	public String getValeur() {
+		return valeur.toString();
+	}
+	public void setValeur(String valeur) {
+		this.valeur = new BigDecimal(valeur);
+	}
+	public String getOp() {
+		return op;
+	}
+	public void setOp(String op) {
+		this.op = op;
+	}
+	public BigDecimal getAncienSolde() {
+		return ancienSolde;
+	}
+	public BigDecimal getNouveauSolde() {
+		return nouveauSolde;
+	}	
+	public String getDateInf() {
+		return dateInf;
+	}
+	public void setDateInf(String dateInf) {
+		this.dateInf = dateInf;
+	}
+	public String getDateSup() {
+		return dateSup;
+	}
+	public void setDateSup(String dateSup) {
+		this.dateSup = dateSup;
+	}
+	
+	/**
+	 * Etablit une connexion à la base de données depuis un objet dataSource.
+	 * @param ds DataSource se connectant à la base de données souhaitée
+	 * @throws TraitementException si la connexion à la base de données lève une erreur
+	 */
+	public void ouvrirConnexion(DataSource ds) throws TraitementException {
+		// Connection to DataBase
+		try {
+			con = ds.getConnection();
+		} catch (SQLException e) {
+			throw new TraitementException("21");
+		}
+	}
+	
+	/**
+	 * Ferme la connexion à la base de données.
+	 * @throws TraitementException si la base de données lève une erreur après traitement
+	 */
+	public void fermerConnexion() throws TraitementException {
+		try {
+			con.close();
+		} catch (SQLException e) {
+			throw new TraitementException("22");
+		}
+	}
+	
+	/**
+	 * Récupère le nom, le prénom et le solde dans la table Compte correspondant à la valeur 
+	 * de <i>noDeCompte</i> et les enregistre dans <i>nom</i>, <i>prenom</i> et <i>solde</i>.
+	 * @throws TraitementException si l'accès au compte client lève une erreur
+	 */
+	public void consulter() throws TraitementException {
+		try {
+			var stmt = con.createStatement();
+			ResultSet rs = stmt.executeQuery("SELECT * FROM COMPTE WHERE NOCOMPTE = '"+noDeCompte+"';");
+			rs.next();
+			nom = rs.getString("NOM");
+			prenom = rs.getString("PRENOM");
+			solde = rs.getBigDecimal("SOLDE");
+		} catch (SQLException e) {
+			throw new TraitementException("3");
+		}
+	}
+		
+	/**
+	 * Récupère le solde dans la table Compte correspondant à la valeur de <i>noDeCompte</i>
+	 * et l'enregistre dans <i>ancienSolde</i>, puis calcule le nouveau solde en fonction de 
+	 * <i>valeur</i> qui doit être une valeur numérique sous la forme d'un <b>String</b> et 
+	 * de <i>op</i> qui doit être un "<b>+</b>" ou un "<b>-</b>".<br>
+	 * Le nouveau solde est stocké dans le champ <i>nouveauSolde</i>.
+	 * @throws TraitementException si l'opération est refusée car le <i>solde</i> est inférieur à 0,
+	 * 		ou si l'accès à la base de données provoque une erreur
+	 */
+	public void traiter() throws TraitementException {
+		Statement stmt;
+		try {
+			stmt = con.createStatement();
+			var rs = stmt.executeQuery("SELECT solde FROM COMPTE WHERE NOCOMPTE = '"+noDeCompte+"';");
+			rs.next();
+			solde = rs.getBigDecimal("SOLDE");
+			ancienSolde = solde;
+			if(op.equals("-"))
+				nouveauSolde = ancienSolde.subtract(valeur);
+			else
+				nouveauSolde = ancienSolde.add(valeur);	
+			if(nouveauSolde.compareTo(new BigDecimal(0)) == -1) {
+				nouveauSolde = new BigDecimal(0);
+				throw new TraitementException("24");
+			}
+			con.setAutoCommit(false);
+		    try {
+		        stmt.executeUpdate("UPDATE COMPTE SET solde = '"+nouveauSolde+"' WHERE NOCOMPTE = '"+noDeCompte+"';");
+				stmt.executeUpdate("INSERT INTO OPERATION(nocompte, date, heure, op, valeur) VALUES ('"+noDeCompte+"', current_date(), current_time(), '"+op+"', '"+valeur+"');");
+
+		        con.commit();
+		    } catch (SQLException e) {
+		        con.rollback();
+		        throw new TraitementException("3");
+		    }
+		} catch (SQLException e) {
+			throw new TraitementException("3");
+		}
+	}
+	
+	/**
+	 * Renvoie la liste des opérations par dates.
+	 * @return une <i>List< String[] ></i> correspondant aux opérations
+	 */
+	public List<String[]> getOperationsParDates() {
+		return operationsParDates;
+	}
+	
+	/**
+	 * Récupère NOCOMPTE, DATE, HEURE, OP et VALEUR de la table <i>OPERATION</i>
+	 * puis les stocke dans un tableau de string qui est lui même stocké dans 
+	 * <i>operationsParDates</i>
+	 * @throws TraitementException
+	 */
+	public void listerParDates() throws TraitementException {
+		operationsParDates = new ArrayList<String[]>();
+		Statement stmt;
+		try {
+			stmt = con.createStatement();
+			ResultSet rs = stmt.executeQuery("SELECT * FROM OPERATION WHERE NOCOMPTE = '"+noDeCompte+"' AND Date >= '"+dateInf+"' AND  Date <= '"+dateSup+"';");
+			while(rs.next()) {
+				String[] operation = {
+					rs.getString("NOCOMPTE"),
+					rs.getDate("DATE").toString(),
+					rs.getTime("HEURE").toString(),
+					rs.getString("OP"),
+					rs.getBigDecimal("VALEUR").toString()
+				};
+				operationsParDates.add(operation);
+			}
+						
+		} catch (SQLException e) {
+			throw new TraitementException("3");
+		}
+	}
+}

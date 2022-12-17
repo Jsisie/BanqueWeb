@@ -1,0 +1,169 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Consultation réussie</title>
+<style type="text/css">
+td,
+th {
+    border: 1px solid rgb(190, 190, 190);
+    padding: 10px;
+}
+
+td {
+    text-align: center;
+}
+
+tr:nth-child(even) {
+    background-color: #eee;
+}
+
+th[scope="col"] {
+    background-color: #696969;
+    color: #fff;
+}
+
+th[scope="row"] {
+    background-color: #d7d9f2;
+}
+
+caption {
+    padding: 10px;
+    caption-side: bottom;
+}
+
+table {
+    border-collapse: collapse;
+    border: 2px solid rgb(200, 200, 200);
+    letter-spacing: 1px;
+    font-family: sans-serif;
+    font-size: .8rem;
+}
+
+.errorDiv {
+	color: red;
+}
+
+.msgDiv {
+	color: blue;	
+}
+
+</style>
+</head>
+<body>
+	<div class="compteTables">
+		<div class="infosCompteTable" align="center"> 
+			<table>
+				<tr>
+					<th>N° de compte</th>
+					<th>Nom</th>
+					<th>Prénom</th>
+					<th>Solde</th>
+				</tr>
+				<tr>
+					<td><%=session.getAttribute("NoDeCompte")%></td>
+					<td><%=session.getAttribute("nom")%></td>
+					<td><%=session.getAttribute("prenom")%></td>
+					<td><%=session.getAttribute("solde")%></td>
+				</tr>
+			</table>
+		</div>
+		<br>
+		<form class="operationForm" method="post">
+			<div class="operationTable" align="center">
+				<table>
+					<tr>
+						<th>Opération à effectuer</th>
+						<th>Valeur</th>
+					</tr>
+					<tr>
+						<td>
+							<label for="+">(+)</label>
+	  						<input type="radio" id="OpPlus" name="Op" value="+" ${op eq "+" ? 'checked' : ''}>
+	  						<input type="radio" id="OpMinus" name="Op" value="-" ${op eq "-" ? 'checked' : ''}>
+		  					<label for="-">(-)</label></td>
+						<td>
+							<input type="text" name="ValeurEntiere" id="valeurEntiere" maxlength="10" size="10" value=${valeurEntiere}>
+							<label id="virguleDecimale" for="valeur">,</label>
+							<input type="text" name="ValeurDecimale" id="valeurDecimale" maxlength="2" size="2" value=${valeurDecimale}>
+						</td>
+						<td>
+							<input  id="Demande" name="Demande" type="submit" value="Traiter">
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div class="listeOperationsTable" align="center"> 
+				<table>
+					<tr>
+						<th>Liste des opérations réalisées</th>
+					</tr>
+					<tr>
+						<td>
+							<label for="du">du: </label>
+							<select name="jInit">
+								<c:forEach var="i" begin="1" end="31" step="1">
+									<option value="${i}" ${i eq dayInit ? 'selected' : '' }>
+		 								${i}
+		 							</option>
+								</c:forEach>
+		 					</select>
+							<select name="mInit">
+								<c:forEach var="i" begin="1" end="12" step="1">
+									<option value="${i}" ${i eq monthInit ? 'selected' : '' }>
+		 								${i}
+		 							</option>
+								</c:forEach>
+							</select>
+							<select name="aInit">
+								<c:forEach var="i" begin="2000" end="2022" step="1">
+									<option value="${i}" ${i eq yearInit ? 'selected' : '' }>
+		 								${i}
+		 							</option>
+								</c:forEach>
+							</select>
+							<label for="au">au: </label>
+							<select name="jFinal">
+								<c:forEach var="i" begin="1" end="31" step="1">
+									<option value="${i}" ${i eq dayFinal ? 'selected' : '' }>
+		 								${i}
+		 							</option>
+								</c:forEach>
+							</select>
+							<select name="mFinal">
+								<c:forEach var="i" begin="1" end="12" step="1">
+									<option value="${i}" ${i eq monthFinal ? 'selected' : '' }>
+		 								${i}
+		 							</option>
+								</c:forEach>
+							</select>
+							<select name="aFinal">
+								<c:forEach var="i" begin="2000" end="2022" step="1">
+									<option value="${i}" ${i eq yearFinal ? 'selected' : '' }>
+		 								${i}
+		 							</option>
+								</c:forEach>
+							</select>
+						</td>
+						<td>
+							<input  id="Demande" name="Demande" type="submit" value="Extraire la liste">
+						</td>
+					</tr>
+				</table>
+				<td>
+				<input  id="Demande" name="Demande" type="submit" value="Fin de traitement">
+			</td>
+			</div>
+			<div class="msgDiv" align="center">
+				<p> ${msg} </p>
+			</div>
+			<div class="errorDiv" align="center">
+				<p> ${msgError} </p>
+			</div>
+		</form>
+	</div> 
+</body>
+</html>

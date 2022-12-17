@@ -1,0 +1,183 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Consultation réussie</title>
+<style type="text/css">
+
+h1{
+  font-size: 30px;
+  color: #fff;
+  text-transform: uppercase;
+  font-weight: 300;
+  text-align: center;
+  margin-bottom: 15px;
+}
+table{
+  width:100%;
+  table-layout: fixed;
+}
+.tbl-header{
+  background-color: rgba(255,255,255,0.3);
+ }
+.tbl-content{
+  height:300px;
+  overflow-x:auto;
+  margin-top: 0px;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+th{
+  padding: 20px 15px;
+  text-align: left;
+  font-weight: 500;
+  font-size: 12px;
+  color: #fff;
+  text-transform: uppercase;
+}
+td{
+  padding: 15px;
+  text-align: left;
+  vertical-align:middle;
+  font-weight: 300;
+  font-size: 12px;
+  color: #fff;
+  border-bottom: solid 1px rgba(255,255,255,0.1);
+}
+
+
+/* demo styles */
+
+@import url(https://fonts.googleapis.com/css?family=Roboto:400,500,300,700);
+body{
+  background: -webkit-linear-gradient(left, #25c481, #25b7c4);
+  background: linear-gradient(to right, #25c481, #25b7c4);
+  font-family: 'Roboto', sans-serif;
+}
+section{
+  margin: 50px;
+}
+
+
+/* follow me template */
+.made-with-love {
+  margin-top: 40px;
+  padding: 10px;
+  clear: left;
+  text-align: center;
+  font-size: 10px;
+  font-family: arial;
+  color: #fff;
+}
+.made-with-love i {
+  font-style: normal;
+  color: #F50057;
+  font-size: 14px;
+  position: relative;
+  top: 2px;
+}
+.made-with-love a {
+  color: #fff;
+  text-decoration: none;
+}
+.made-with-love a:hover {
+  text-decoration: underline;
+}
+
+
+/* for custom scrollbar for webkit browser*/
+
+::-webkit-scrollbar {
+    width: 6px;
+} 
+::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3); 
+} 
+::-webkit-scrollbar-thumb {
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3); 
+}
+td,
+th {
+    border: 1px solid rgb(190, 190, 190);
+    padding: 10px;
+}
+
+td {
+    text-align: center;
+}
+
+tr:nth-child(even) {
+    background-color: #eee;
+}
+
+th[scope="col"] {
+    background-color: #696969;
+    color: #fff;
+}
+
+th[scope="row"] {
+    background-color: #d7d9f2;
+}
+
+caption {
+    padding: 10px;
+    caption-side: bottom;
+}
+
+/* table {
+    border-collapse: collapse;
+    border: 2px solid rgb(200, 200, 200);
+    letter-spacing: 1px;
+    font-family: sans-serif;
+    font-size: .8rem;
+} */
+</style>
+</head>
+<body>
+	<div class="compteTables">
+		<div class="infosCompteTable" align="center"> 
+			<table>
+				<tr>
+					<th>N° de compte</th>
+					<th>Nom</th>
+					<th>Prénom</th>
+					<th>Solde</th>
+				</tr>
+				<tr>
+					<td><%=session.getAttribute("NoDeCompte")%></td>
+					<td><%=session.getAttribute("nom")%></td>
+					<td><%=session.getAttribute("prenom")%></td>
+					<td><%=session.getAttribute("solde")%></td>
+				</tr>
+			</table>
+		</div>
+		<br>
+		<form class="operationForm" method="post">
+			<div class="operationTable" align="center">
+				<table>
+					<tr>
+						<th>Opération à effectuer</th>
+						<th>Valeur</th>
+					</tr>
+					<tr>
+						<td>
+							<label for="+">(+)</label>
+							<input type="radio" id="OpPlus" name="Op" value="+">
+		  					<input type="radio" id="OpMinus" name="Op" value="-">
+		  					<label for="-">(-)</label></td>
+						<td>
+							<input type="text" name="ValeurEntiere" id="valeurEntiere" maxlength="10" size="10">
+							<label id="virguleDecimale" for="valeur">,</label>
+							<input type="text" name="ValeurDecimale" id="valeurDecimale" maxlength="2" size="2">
+						</td>
+						<td>
+							<input  id="Demande" name="Demande" type="submit" value="Traiter">
+						</td>
+					</tr>
+				</table>
+			</div>
+		</form>
+	</div>
+</body>
+</html>

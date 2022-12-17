@@ -1,0 +1,41 @@
+package servlets;
+
+import javax.naming.InitialContext;
+
+import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletContextListener;
+import jakarta.servlet.annotation.WebListener;
+
+/**
+ * Application Lifecycle Listener implementation class InitBanqueWeb
+ *
+ */
+public class InitBanqueWeb implements ServletContextListener {
+
+    /**
+     * Default constructor. 
+     */
+    public InitBanqueWeb() {
+        // TODO Auto-generated constructor stub
+    }
+
+	/**
+     * @see ServletContextListener#contextInitialized(ServletContextEvent)
+     */
+    public void contextInitialized(ServletContextEvent sce)  { 
+    	try {
+    		var context = sce.getServletContext();
+    		var nameDataSource = context.getInitParameter("nomDataSource");
+    		Context initContext = new InitialContext();
+    		
+    	}
+    }
+
+	/**
+     * @see ServletContextListener#contextDestroyed(ServletContextEvent)
+     */
+    public void contextDestroyed(ServletContextEvent sce)  { 
+         // TODO Auto-generated method stub
+    }
+	
+}

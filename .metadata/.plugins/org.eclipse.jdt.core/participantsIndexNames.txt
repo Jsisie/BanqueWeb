@@ -1,0 +1,3 @@
+INDEX VERSION 1.131
+D:\Programs\Java\JEE\BanqueWeb\.metadata\.plugins\org.eclipse.jst.jsp.core\jspsearch\2789485978.index
+\BanqueWeb\src\compte
